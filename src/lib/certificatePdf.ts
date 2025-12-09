@@ -9,7 +9,7 @@ const CERT_BUCKET = "certificates";
 const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url));
 const ROOT_DIR = path.resolve(MODULE_DIR, "..", "..");
 const PUBLIC_DIR = path.resolve(ROOT_DIR, "public");
-const TEMPLATE_HTML_PATH = path.resolve(PUBLIC_DIR, "certificate-preview.html");
+const TEMPLATE_HTML_URL = `${import.meta.env.PUBLIC_URL}/certificate-preview.html`;
 
 type GenerateOptions = {
   recipientName: string;
@@ -106,7 +106,21 @@ export async function buildCertificateHtml(options: {
   issuedDateLabel: string;
   badgeTitle: string;
 }): Promise<string> {
-  const template = await readFile(TEMPLATE_HTML_PATH, "utf8");
+  let template: string;
+
+  if (import.meta.env.DEV) {
+    // In development, read from local file
+    const TEMPLATE_HTML_PATH = path.resolve(PUBLIC_DIR, "certificate-preview.html");
+    template = await readFile(TEMPLATE_HTML_PATH, "utf8");
+  } else {
+    // In production, fetch from URL
+    const response = await fetch(TEMPLATE_HTML_URL);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch certificate template: ${response.statusText}`);
+    }
+    template = await response.text();
+  }
+
   const withBase = injectBaseHref(template);
   const withAwardLine = injectAwardLine(withBase, options.recipientName, options.issuedDateLabel);
   const withBadge = injectBadgeTitle(withAwardLine, options.badgeTitle);
