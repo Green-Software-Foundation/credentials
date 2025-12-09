@@ -15,6 +15,7 @@ const NAME_PLACEHOLDER = "${Name}";
 const DATE_PLACEHOLDER = "{Date}";
 const COURSE_PLACEHOLDER = "${CourseName}";
 const textDecoder = new TextDecoder();
+const DEFAULT_ASSET_BASE = "https://gsf-credentials.netlify.app/";
 
 type GenerateOptions = {
   recipientName: string;
@@ -116,6 +117,18 @@ function injectBaseHref(template: string): string {
   return template.replace("<head>", `<head>${baseTag}`);
 }
 
+function getAssetBaseUrl(preferred?: string): string {
+  const envBase =
+    preferred ||
+    import.meta.env.PUBLIC_SITE_URL ||
+    process.env.PUBLIC_SITE_URL ||
+    process.env.URL ||
+    process.env.DEPLOY_URL ||
+    process.env.DEPLOY_PRIME_URL;
+  const base = envBase || DEFAULT_ASSET_BASE;
+  return base.endsWith("/") ? base : `${base}/`;
+}
+
 function mimeTypeFor(filename: string): string {
   if (filename.endsWith(".svg")) return "image/svg+xml";
   if (filename.endsWith(".png")) return "image/png";
@@ -123,15 +136,32 @@ function mimeTypeFor(filename: string): string {
   return "application/octet-stream";
 }
 
-async function inlineAssetSources(html: string): Promise<string> {
+async function fetchAsset(relativeSrc: string, assetBaseUrl?: string): Promise<Buffer> {
+  const absolutePath = path.resolve(PUBLIC_DIR, relativeSrc);
+  try {
+    return await readFile(absolutePath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+
+  const baseUrl = getAssetBaseUrl(assetBaseUrl);
+  const url = `${baseUrl}${relativeSrc}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch asset from ${url}: ${response.status} ${response.statusText}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+async function inlineAssetSources(html: string, assetBaseUrl?: string): Promise<string> {
   const matches = [...html.matchAll(/src="\/?(assets\/[^"]+)"/g)];
   if (!matches.length) return html;
 
   let result = html;
   for (const match of matches) {
     const relativeSrc = match[1];
-    const absolutePath = path.resolve(PUBLIC_DIR, relativeSrc);
-    const data = await readFile(absolutePath);
+    const data = await fetchAsset(relativeSrc, assetBaseUrl);
     const mimeType = mimeTypeFor(relativeSrc);
     const dataUri = `data:${mimeType};base64,${data.toString("base64")}`;
     result = result.replaceAll(`src="${relativeSrc}"`, `src="${dataUri}"`);
@@ -143,11 +173,12 @@ export async function buildCertificateHtml(options: {
   recipientName: string;
   issuedDateLabel: string;
   badgeTitle: string;
+  assetBaseUrl?: string;
 }): Promise<string> {
   const template = await downloadTemplateFromStorage();
   const withBase = injectBaseHref(template);
   const withValues = replacePlaceholders(withBase, options);
-  return inlineAssetSources(withValues);
+  return inlineAssetSources(withValues, options.assetBaseUrl);
 }
 
 async function htmlToPdf(html: string): Promise<Uint8Array> {
@@ -167,10 +198,9 @@ async function htmlToPdf(html: string): Promise<Uint8Array> {
       }
 
       const relativeSrc = url.slice(assetIndex + 1);
-      const absolutePath = path.resolve(PUBLIC_DIR, relativeSrc);
 
       try {
-        const data = await readFile(absolutePath);
+        const data = await fetchAsset(relativeSrc);
         const mimeType = mimeTypeFor(relativeSrc);
         return request.respond({
           status: 200,
@@ -201,17 +231,22 @@ async function htmlToPdf(html: string): Promise<Uint8Array> {
   }
 }
 
-export async function generateCertificatePdf(options: GenerateOptions): Promise<Uint8Array> {
+export async function generateCertificatePdf(
+  options: GenerateOptions & { assetBaseUrl?: string },
+): Promise<Uint8Array> {
   const issuedDateLabel = formatIssuedDate(options.issuedAt);
   const html = await buildCertificateHtml({
     recipientName: options.recipientName,
     issuedDateLabel,
     badgeTitle: options.badgeTitle,
+    assetBaseUrl: options.assetBaseUrl,
   });
   return htmlToPdf(html);
 }
 
-export async function generateCertificateAndUpload(options: GenerateOptions) {
+export async function generateCertificateAndUpload(
+  options: GenerateOptions & { assetBaseUrl?: string },
+) {
   const { verificationCode } = options;
   const issuedDateLabel = formatIssuedDate(options.issuedAt);
 

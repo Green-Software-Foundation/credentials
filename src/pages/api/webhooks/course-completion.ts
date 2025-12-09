@@ -214,6 +214,7 @@ export async function POST({ request }: APIContext) {
 
   const baseUrl = new URL(request.url);
   const issuedAt = new Date().toISOString();
+  const assetBaseUrl = `${baseUrl.origin}/`;
 
   let awardRecord = existingAward;
   let emailStatus: EmailSendStatus = { status: "skipped", reason: "existing award reused" };
@@ -250,6 +251,7 @@ export async function POST({ request }: APIContext) {
       issuedAt: issuedAtForCertificate,
       verificationCode: awardRecord.id,
       badgeTitle: badge.name,
+      assetBaseUrl,
     });
     certificateUrl = certificate.publicUrl;
   } catch (err) {
