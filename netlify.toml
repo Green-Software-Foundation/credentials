@@ -3,5 +3,8 @@
 # so the server-side PDF generation can inline and serve them.
 included_files = [
   "public/certificate-preview.html",
-  "public/assets/**"
+  "public/assets/**",
+  "node_modules/@sparticuz/chromium/bin/**"
 ]
+external_node_modules = ["@sparticuz/chromium", "puppeteer-core"]
+node_bundler = "esbuild"
