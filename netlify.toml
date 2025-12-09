@@ -1,0 +1,7 @@
+[functions]
+# Ensure certificate HTML and all referenced assets are bundled into the Netlify function
+# so the server-side PDF generation can inline and serve them.
+included_files = [
+  "public/certificate-preview.html",
+  "public/assets/**"
+]

@@ -1,0 +1,23 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import Verify from "@/components/verify.astro";
+import Cta from "@/components/cta.astro";
+import { initializeCredentials } from "@/data/credentials";
+
+// Initialize credentials for the verify component
+await initializeCredentials();
+---
+
+<PageLayout title="Green Software Foundation">
+  <Verify />
+  <Cta
+    sectionId="about-gsf"
+    sectionClass="pb-10 md:pb-12 lg:pb-16"
+    title="About Green Software Foundation"
+    description="Green software is about reducing the environmental impact of the code we write and the systems we build. The Green Software Foundation (GSF) creates the standards and tools to make this possible."
+    buttonText="Learn more"
+    buttonVariant="primary"
+    imageSrc="/assets/about.svg"
+    imageAlt="Illustration about the Green Software Foundation"
+  />
+</PageLayout>

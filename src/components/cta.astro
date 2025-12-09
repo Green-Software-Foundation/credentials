@@ -1,0 +1,60 @@
+---
+import { Button } from "@/components/ui/button";
+
+interface Props {
+  sectionId?: string;
+  sectionClass?: string;
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  buttonHref?: string;
+  buttonVariant?: "primary" | "secondary" | "outline";
+  imageSrc?: string;
+  imageAlt?: string;
+}
+
+const {
+  sectionId,
+  sectionClass,
+  title,
+  description,
+  buttonText,
+  buttonHref,
+  buttonVariant,
+  imageSrc,
+  imageAlt,
+} = Astro.props;
+---
+
+<section id={sectionId} class={sectionClass}>
+  <div class="container">
+    <div
+      class="flex items-center justify-center rounded-2xl bg-accent-lighter p-10 lg:flex-row lg:justify-start lg:p-0 lg:px-20"
+    >
+      <div class="flex-1">
+        <div>
+          <h2 class="text-xl font-bold md:text-2xl">{title}</h2>
+          <p class="mt-2 text-base md:text-lg lg:text-xl">
+            {description}
+          </p>
+        </div>
+        {buttonText && (
+          <div class="mt-6">
+            {
+              buttonHref ? (
+                <Button variant={buttonVariant} asChild>
+                  <a href={buttonHref}>{buttonText}</a>
+                </Button>
+              ) : (
+                <Button variant={buttonVariant}>{buttonText}</Button>
+              )
+            }
+          </div>
+        )}
+      </div>
+      <div class="hidden lg:flex lg:flex-1 lg:justify-end">
+        <img src={imageSrc} alt={imageAlt} />
+      </div>
+    </div>
+  </div>
+</section>

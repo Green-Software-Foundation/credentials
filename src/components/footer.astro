@@ -1,0 +1,167 @@
+---
+import LinkedInIcon from "../assets/icons/linkedin-icon.svg";
+import GitHubIcon from "../assets/icons/github-icon.svg";
+
+const year = new Date().getFullYear();
+
+const footerSections = [
+  {
+    title: "Project",
+    links: [
+      {
+        href: "#",
+        text: "Overview",
+      },
+      {
+        href: "#",
+        text: "Framework Pillars",
+      },
+      {
+        href: "#",
+        text: "Pilot Program",
+      },
+      {
+        href: "#",
+        text: "Resources",
+      },
+      {
+        href: "#",
+        text: "Directory",
+      },
+    ],
+  },
+  {
+    title: "Get Involved",
+    links: [
+      {
+        href: "#",
+        text: "Join the Pilot",
+      },
+      {
+        href: "#",
+        text: "Subscribe for Updates",
+      },
+      {
+        href: "#",
+        text: "Share Feedback",
+      },
+      {
+        href: "#",
+        text: "Submit Case Study",
+      },
+      {
+        href: "#",
+        text: "Become a GSF Member",
+      },
+    ],
+  },
+  {
+    title: "GSF Info",
+    links: [
+      {
+        href: "#",
+        text: "About",
+      },
+      {
+        href: "#",
+        text: "Membership",
+      },
+      {
+        href: "#",
+        text: "Projects",
+      },
+      {
+        href: "#",
+        text: "News",
+      },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      {
+        href: "https://greensoftware.foundation/policy/terms",
+        text: "Privacy Policy",
+      },
+      {
+        href: "https://greensoftware.foundation/policy/terms",
+        text: "Terms and Conditions",
+      },
+      {
+        href: "#",
+        text: "License: Creative Commons",
+      },
+    ],
+  },
+  {
+    title: "Contact",
+    type: "contact",
+    socialLinks: [
+      {
+        href: "https://github.com/Green-Software-Foundation",
+        icon: "github",
+        label: "GitHub",
+      },
+      {
+        href: "https://www.linkedin.com/company/green-software-foundation/",
+        icon: "linkedin",
+        label: "LinkedIn",
+      },
+    ],
+    email: "credentials@greensoftware.foundation",
+  },
+];
+---
+
+<footer class="bg-primary-darker">
+  <div class="container">
+    <div
+      class="grid grid-cols-1 py-12 md:py-18 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:gap-16 lg:py-20"
+    >
+      <div class="flex w-full flex-col gap-4">
+        <img src="/assets/footer-logo.svg" class="w-20" />
+        <p class="pt-4 text-xs font-normal text-white/50">
+          Copyright © {year} Green Software Foundation. All rights reserved.<br /><br /> Want to learn
+          implementation? Comprehensive training course coming soon
+        </p>
+      </div>
+
+      {
+        footerSections.map((section) => (
+          <div class="mt-8 flex flex-col gap-4 lg:mt-0">
+            <h1 class="relative text-xs font-bold tracking-[3px] text-accent lg:mb-4">
+              {section.title}
+              <span class="hidden lg:absolute lg:-bottom-2 lg:left-0 lg:flex lg:h-1 lg:w-6 lg:bg-accent" />
+            </h1>
+
+            <div class="flex flex-col gap-4">
+              {section.type === "contact" ? (
+                <>
+                  <div class="flex gap-4">
+                    {section.socialLinks.map((social) => (
+                      <a
+                        href={social.href}
+                        class="text-white/50 transition-colors hover:text-accent"
+                        aria-label={social.label}
+                      >
+                        {social.icon === "linkedin" && <LinkedInIcon class="text-accent" />}
+                        {social.icon === "github" && <GitHubIcon class="text-accent" />}
+                      </a>
+                    ))}
+                  </div>
+                  <p class="text-xs text-white/50 underline">{section.email}</p>
+                </>
+              ) : (
+                section.links?.map((link) => (
+                  <a href={link.href} class="text-xs text-white/50">
+                    {link.text}
+                  </a>
+                ))
+              )}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</footer>

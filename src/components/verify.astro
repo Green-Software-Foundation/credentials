@@ -1,0 +1,65 @@
+---
+import { credentials } from "@/data/credentials";
+import { Card, CardHeader, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+---
+
+<section id="credentials" class="relative py-12 md:py-18 lg:py-20">
+  <div class="container">
+    <div
+      class="relative -z-10 overflow-hidden rounded-2xl bg-accent-lightest-2 p-10 text-center md:h-150 md:py-12 lg:py-16"
+    >
+      <img
+        src="/assets/right-ellipse.svg"
+        aria-hidden="true"
+        class="pointer-events-none absolute bottom-0 -left-12 hidden w-64 opacity-70 select-none sm:block lg:-left-24 lg:w-96"
+      />
+      <img
+        src="/assets/left-ellipse.svg"
+        aria-hidden="true"
+        class="pointer-events-none absolute -right-12 bottom-0 hidden w-64 opacity-70 select-none sm:block lg:-right-24 lg:w-96"
+      />
+
+      <div class="relative mx-auto max-w-4xl space-y-6">
+        <div class="space-y-4">
+          <h2 class="text-3xl font-bold text-primary md:text-4xl">
+            Verify Your Green Software Expertise
+          </h2>
+          <p class="text-base md:text-lg">
+            Official credentials platform for Green Software Foundation practitioners. Earn, verify,
+            and showcase your commitment to building sustainable software that reduces environmental
+            impact.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 flex flex-col gap-2 md:-mt-80 lg:-mt-96">
+      {
+        credentials.map((credential) => (
+          <Card
+            key={credential.slug}
+            className="flex flex-col w-full max-w-lg md:flex-row md:items-center md:mx-auto md:justify-center gap-6 lg:max-w-4xl"
+          >
+            <div class="shrink-0">
+              <img
+                src="/assets/card-badge.svg"
+                alt={`${credential.title} badge`}
+                class="object-contain md:size-full"
+              />
+            </div>
+            <CardHeader>
+              <CardTitle>{credential.title}</CardTitle>
+              <CardDescription className="mt-2">{credential.shortDescription}</CardDescription>
+              <CardFooter className="mt-6 flex md:items-end md:justify-end">
+                <Button variant="outline">
+                  <a href={`/credentials/${credential.slug}`}>View Credential</a>
+                </Button>
+              </CardFooter>
+            </CardHeader>
+          </Card>
+        ))
+      }
+    </div>
+  </div>
+</section>
