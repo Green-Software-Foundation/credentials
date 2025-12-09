@@ -1,6 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { TextDecoder } from "node:util";
 
 import puppeteer from "puppeteer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
@@ -9,7 +10,11 @@ const CERT_BUCKET = "certificates";
 const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url));
 const ROOT_DIR = path.resolve(MODULE_DIR, "..", "..");
 const PUBLIC_DIR = path.resolve(ROOT_DIR, "public");
-const TEMPLATE_HTML_URL = `${import.meta.env.PUBLIC_URL}/certificate-preview.html`;
+const TEMPLATE_STORAGE_PATH = "templates/certificate-preview.html";
+const NAME_PLACEHOLDER = "${Name}";
+const DATE_PLACEHOLDER = "{Date}";
+const COURSE_PLACEHOLDER = "${CourseName}";
+const textDecoder = new TextDecoder();
 
 type GenerateOptions = {
   recipientName: string;
@@ -38,7 +43,6 @@ async function ensurePublicBucket(): Promise<void> {
       (error as { status?: number | string; statusCode?: number | string }).status ??
       (error as { status?: number | string; statusCode?: number | string }).statusCode;
 
-    // Only ignore "not found" errors; surface everything else.
     if (status !== 404 && status !== "404") {
       throw new Error(`Failed to check bucket: ${error.message}`);
     }
@@ -52,22 +56,56 @@ async function ensurePublicBucket(): Promise<void> {
   }
 }
 
-function injectAwardLine(template: string, recipientName: string, issuedDateLabel: string): string {
-  const line = `Awarded to ${recipientName} on ${issuedDateLabel}`;
-  const replaced = template.replace(/Awarded to[^<]+/g, line);
-  if (!replaced.includes(line)) {
-    throw new Error("Failed to inject name/date into certificate template");
+async function downloadTemplateFromStorage(): Promise<string> {
+  const supabase = getSupabaseAdminClient();
+  await ensurePublicBucket();
+
+  const { data, error } = await supabase.storage.from(CERT_BUCKET).download(TEMPLATE_STORAGE_PATH);
+  if (error) {
+    const status =
+      (error as { status?: number | string; statusCode?: number | string }).status ??
+      (error as { status?: number | string; statusCode?: number | string }).statusCode;
+    if (status === 404 || status === "404") {
+      throw new Error(
+        `Certificate template not found in storage at '${TEMPLATE_STORAGE_PATH}'. ` +
+          "Upload the latest template before generating certificates.",
+      );
+    }
+    throw new Error(`Failed to download certificate template: ${error.message}`);
   }
-  return replaced;
+
+  if (!data) {
+    throw new Error("Certificate template download returned empty response");
+  }
+
+  const buffer = await data.arrayBuffer();
+  return textDecoder.decode(buffer);
 }
 
-function injectBadgeTitle(template: string, badgeTitle: string): string {
+function replacePlaceholders(
+  template: string,
+  {
+    recipientName,
+    issuedDateLabel,
+    badgeTitle,
+  }: { recipientName: string; issuedDateLabel: string; badgeTitle: string },
+): string {
   const badgeTitleUpper = badgeTitle.toUpperCase();
-  const replaced = template.replace(/GREEN SOFTWARE PRACTITIONER/g, badgeTitleUpper);
-  if (!replaced.includes(badgeTitleUpper)) {
-    throw new Error("Failed to inject badge title into certificate template");
+  const replacements: Array<[string, string]> = [
+    [NAME_PLACEHOLDER, recipientName],
+    [DATE_PLACEHOLDER, issuedDateLabel],
+    [COURSE_PLACEHOLDER, badgeTitleUpper],
+  ];
+
+  let result = template;
+  for (const [placeholder, value] of replacements) {
+    if (!result.includes(placeholder)) {
+      throw new Error(`Certificate template missing placeholder ${placeholder}`);
+    }
+    result = result.replaceAll(placeholder, value);
   }
-  return replaced;
+
+  return result;
 }
 
 function injectBaseHref(template: string): string {
@@ -106,25 +144,10 @@ export async function buildCertificateHtml(options: {
   issuedDateLabel: string;
   badgeTitle: string;
 }): Promise<string> {
-  let template: string;
-
-  if (import.meta.env.DEV) {
-    // In development, read from local file
-    const TEMPLATE_HTML_PATH = path.resolve(PUBLIC_DIR, "certificate-preview.html");
-    template = await readFile(TEMPLATE_HTML_PATH, "utf8");
-  } else {
-    // In production, fetch from URL
-    const response = await fetch(TEMPLATE_HTML_URL);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch certificate template: ${response.statusText}`);
-    }
-    template = await response.text();
-  }
-
+  const template = await downloadTemplateFromStorage();
   const withBase = injectBaseHref(template);
-  const withAwardLine = injectAwardLine(withBase, options.recipientName, options.issuedDateLabel);
-  const withBadge = injectBadgeTitle(withAwardLine, options.badgeTitle);
-  return inlineAssetSources(withBadge);
+  const withValues = replacePlaceholders(withBase, options);
+  return inlineAssetSources(withValues);
 }
 
 async function htmlToPdf(html: string): Promise<Uint8Array> {
@@ -143,7 +166,7 @@ async function htmlToPdf(html: string): Promise<Uint8Array> {
         return request.continue();
       }
 
-      const relativeSrc = url.slice(assetIndex + 1); // remove leading slash
+      const relativeSrc = url.slice(assetIndex + 1);
       const absolutePath = path.resolve(PUBLIC_DIR, relativeSrc);
 
       try {
