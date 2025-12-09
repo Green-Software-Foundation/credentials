@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { TextDecoder } from "node:util";
 
-import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const CERT_BUCKET = "certificates";
@@ -181,11 +182,19 @@ export async function buildCertificateHtml(options: {
   return inlineAssetSources(withValues, options.assetBaseUrl);
 }
 
-async function htmlToPdf(html: string): Promise<Uint8Array> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+async function launchBrowser() {
+  const executablePath = await chromium.executablePath();
+  const headless = (chromium as unknown as { headless?: boolean }).headless ?? true;
+  return puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: { width: 1200, height: 675 },
+    executablePath,
+    headless,
   });
+}
+
+async function htmlToPdf(html: string): Promise<Uint8Array> {
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
